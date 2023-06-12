@@ -61,10 +61,11 @@ export const App = () => {
     setPage((prevPage) => prevPage + 1);
   };
 
-  const handleModalOpen = (imgSrc) => {
+  const handleModalOpen = useCallback((e) => {
+    const imgSrc = e.target.dataset.src;
     setModalImgSrc(imgSrc);
     setIsOpen(true);
-  };
+  }, []);
 
   const handleModalClose = () => {
     setIsOpen(false);
@@ -92,4 +93,3 @@ export const App = () => {
     </Container>
   );
 };
-
