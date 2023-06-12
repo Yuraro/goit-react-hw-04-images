@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Button from 'components/Button/Button';
@@ -11,96 +11,85 @@ import { Container } from './App.styled';
 import getPictures from '../Services/getPictures';
 import { notification } from 'components/Notification/Notification';
 
+export const App = () => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [pictures, setPictures] = useState([]);
+  const [page, setPage] = useState(1);
+  const [totalPics, setTotalPics] = useState(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [modalImgSrc, setModalImgSrc] = useState('');
+  const [error, setError] = useState(null);
 
-export class App extends Component {
-  state = {
-    searchQuery: '',
-    pictures: [],
-    page: 1,
-    totalPics: null, 
-    isOpen: false,
-    loading: false,
-    modalImgSrc: '',
-    error: null,
-  };
-
-
-  handleSearch = searchQuery => {
-    if (searchQuery === this.state.searchQuery) {
-      notification(`Images of ${searchQuery} have already been displayed.`);
+  const handleSearch = (newSearchQuery) => {
+    if (newSearchQuery === searchQuery) {
+      notification(`Images of ${newSearchQuery} have already been displayed.`);
       return;
     }
-    this.setState({
-      searchQuery,
-      pictures: [],
-      page: 1,
-      totalPics: null,
-      isOpen: false,
-      loading: false,
-      modalImgSrc: '',
-      error: null,
-    });
+    setSearchQuery(newSearchQuery);
+    setPictures([]);
+    setPage(1);
+    setTotalPics(null);
+    setIsOpen(false);
+    setLoading(false);
+    setModalImgSrc('');
+    setError(null);
   };
 
-  async componentDidUpdate(_, prevState) {
-    const prevSearch = prevState.searchQuery;
-    const prevPage = prevState.page;
-    const { searchQuery, page } = this.state;
+  const loadPictures = useCallback(async () => {
+    setLoading(true);
 
-    if (prevSearch !== searchQuery || prevPage !== page) {
-      this.setState({ loading: true });
-
-      try {
-        const response = await getPictures(searchQuery, page);
-        const { hits, totalHits } = response.data;
-        this.setState(prevState => ({
-          pictures: page === 1 ? hits : [...prevState.pictures, ...hits],
-          totalPics: totalHits,
-        }));
-      } catch (error) {
-        this.setState({ error: error.message });
-      } finally {
-        this.setState({ loading: false });
-      }
+    try {
+      const response = await getPictures(searchQuery, page);
+      const { hits, totalHits } = response.data;
+      setPictures((prevPictures) => [...prevPictures, ...hits]);
+      setTotalPics(totalHits);
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
     }
-  }
+  }, [searchQuery, page]);
 
-  onBtnClick = () => {
-    this.setState(prevState => ({ page: prevState.page + 1 }));
+  useEffect(() => {
+    if (searchQuery === '') return;
+
+    loadPictures();
+  }, [searchQuery, page, loadPictures]);
+
+  const handleLoadMore = () => {
+    setPage((prevPage) => prevPage + 1);
   };
 
-  onModalOpen = ({ target }) => {
-    this.setState({ isOpen: true, modalImgSrc: target.dataset.src });
+  const handleModalOpen = (imgSrc) => {
+    setModalImgSrc(imgSrc);
+    setIsOpen(true);
   };
 
-  onModalClose = () => {
-    this.setState({ isOpen: false });
+  const handleModalClose = () => {
+    setIsOpen(false);
   };
 
-  render() {
-    const { pictures, loading, totalPics, error, page, modalImgSrc, isOpen } =
-      this.state;
-    return (
-        <Container>
-        <Searchbar onSubmit={this.handleSearch} />
+  return (
+    <Container>
+      <Searchbar onSubmit={handleSearch} />
+      <ImageGallery pictures={pictures} onClick={handleModalOpen} />
 
-        <ImageGallery pictures={pictures} onClick={this.onModalOpen} />
+      {totalPics === 0 && (
+        <Error errorText={'Sorry, nothing has been found at your request'} />
+      )}
+      {error && (
+        <Error
+          errorText={`Something went wrong... ${error}. Please try again.`}
+        />
+      )}
+      {loading && <Loader />}
+      {totalPics / pictures.length > page && (
+        <Button onClick={handleLoadMore} />
+      )}
+      {isOpen && <Modal imgSrc={modalImgSrc} onClose={handleModalClose} />}
+      <ToastContainer />
+    </Container>
+  );
+};
 
-        {totalPics === 0 && (
-          <Error errorText={'Sorry, nothing has been found at your request'} />
-        )}
-        {error && (
-          <Error
-            errorText={`Something went wrong... ${error}. Please try again.`}
-          />
-        )}
-        {loading && <Loader />}
-        {totalPics / pictures.length > page && (
-          <Button onClick={this.onBtnClick}></Button>
-        )}
-        {isOpen && <Modal imgSrc={modalImgSrc} onClose={this.onModalClose} />}
-        <ToastContainer />
-      </Container>
-    );
-  }
-}

@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { useState } from 'react';
 import { notification } from 'components/Notification/Notification';
 import { FcCamera } from 'react-icons/fc';
 import {
@@ -8,46 +8,43 @@ import {
     Header,
 } from './Searchbar.styled';
 
-class Searchbar extends Component {
-    state = {
-        value: '',
-    };
-    handleChange = ({ target: { value } }) => {
-    this.setState({ value });
+const Searchbar = ({ onSubmit }) => {
+    const [value, setValue] = useState('');
+
+    const handleChange = (e) => {
+        setValue(e.target.value);
     };
 
-    handleSubmit = e => {
-    e.preventDefault();
-        if (this.state.value === '') {
-            notification(
-        'The search input can not be empty. Please enter a search query'
-        );
-		return
-}
-	this.props.onSubmit(this.state.value.trim().toLowerCase());
-    this.setState({ value: '' });
-};
+    const handleSubmit = (e) => {
+        e.preventDefault();
 
-    render() {
+        if (value === '') {
+            notification('The search input cannot be empty. Please enter a search query');
+            return;
+        }
+
+        onSubmit(value.trim().toLowerCase());
+        setValue('');
+    };
+
     return (
         <Header>
-        <Form type="submit" onSubmit={this.handleSubmit}>
-            <FormButton>
-                <FcCamera size="30"  />
-            </FormButton>
+            <Form type="submit" onSubmit={handleSubmit}>
+                <FormButton>
+                    <FcCamera size="30" />
+                </FormButton>
 
-        <FormInput
-            onChange={this.handleChange}
-            type="text"
-            autocomplete="off"
-            autoFocus
-            placeholder="Search images and photos"
-            value={this.state.value}
-        />
-        </Form>
+                <FormInput
+                    onChange={handleChange}
+                    type="text"
+                    autoComplete="off"
+                    autoFocus
+                    placeholder="Search images and photos"
+                    value={value}
+                />
+            </Form>
         </Header>
     );
-}
-}
+};
 
 export default Searchbar;
